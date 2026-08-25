@@ -281,6 +281,18 @@
       font-size: 0.85em;
     }
     .move-dropdown div:hover { background: #f0f0f0; }
+
+    /* Which build am I actually looking at? Without this the only way to tell
+       a stale home-screen app from a fresh one is to hunt for a known item. */
+    .build-stamp {
+      text-align: center;
+      padding: 1.5rem 0 2rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      color: #b0b0b0;
+      user-select: text;
+    }
   </style>
 </head>
 <body>
@@ -300,6 +312,10 @@
 </header>
 
 <main id="app"></main>
+
+<footer class="build-stamp">
+  build 5e22115bfd
+</footer>
 
 <script>
 (function() {

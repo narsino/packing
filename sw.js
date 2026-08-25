@@ -6,7 +6,7 @@
    the hash, which changes these bytes, which is what makes the browser notice
    there is a new worker and install it. Without the stamp the old worker would
    keep serving the old checklist forever. */
-var CACHE = "travel-checklist-4e183b541d";
+var CACHE = "travel-checklist-5e22115bfd";
 var ASSETS = ["./", "./index.html", "./manifest.webmanifest"];
 
 self.addEventListener("install", function(e) {
@@ -25,16 +25,42 @@ self.addEventListener("activate", function(e) {
   }).then(function() { return self.clients.claim(); }));
 });
 
-/* Cache-first: the checklist is a static page and the whole point is that it
-   opens instantly in a car park with one bar of signal. Freshness comes from
-   regenerating, not from the network.
+/* Stale-while-revalidate.
+
+   The cached copy is still what gets returned, so the app opens instantly in a
+   car park with one bar of signal — that property is the whole point and it is
+   unchanged. What is new is that every load with signal also refetches in the
+   background and overwrites the cache, so the *next* open is fresh.
+
+   Why not rely on the cache stamp alone: a new stamp only reaches the browser
+   if it re-requests sw.js, and iOS only does that on a real navigation. A
+   home-screen app resumed from the app switcher never navigates, so it could
+   sit on a stale cache indefinitely. This path does not depend on the worker
+   being replaced at all.
 
    POSTs from the serve.py edit panel are skipped — a mutation must never be
-   answered out of a cache. */
+   answered out of a cache. Cross-origin GETs are left alone entirely. */
 self.addEventListener("fetch", function(e) {
   if (e.request.method !== "GET") return;
+  if (new URL(e.request.url).origin !== self.location.origin) return;
+
+  // Start the network immediately, independent of the cache lookup below.
+  var fresh = fetch(e.request).then(function(res) {
+    if (!res || !res.ok) return res;
+    var copy = res.clone();   // a body can only be read once; keep one for the cache
+    return caches.open(CACHE).then(function(c) {
+      return c.put(e.request, copy);
+    }).then(function() { return res; });
+  });
+
+  // Keep the worker alive until the cache write lands, even though the response
+  // we hand back below may already have come from the cache. Swallow the
+  // rejection: offline is the normal case, not an error.
+  e.waitUntil(fresh.catch(function() {}));
+
   e.respondWith(caches.match(e.request).then(function(hit) {
-    return hit || fetch(e.request).catch(function() {
+    if (hit) return hit;                       // instant, signal or not
+    return fresh.catch(function() {            // cold cache and no network
       return caches.match("./index.html");
     });
   }));
