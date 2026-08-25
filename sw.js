@@ -6,7 +6,7 @@
    the hash, which changes these bytes, which is what makes the browser notice
    there is a new worker and install it. Without the stamp the old worker would
    keep serving the old checklist forever. */
-var CACHE = "travel-checklist-a546df4a0e";
+var CACHE = "travel-checklist-ca2962d11f";
 var ASSETS = ["./", "./index.html", "./manifest.webmanifest"];
 
 self.addEventListener("install", function(e) {
