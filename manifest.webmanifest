@@ -1,0 +1,17 @@
+{
+  "name": "Travel Checklist",
+  "short_name": "Packing",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fafafa",
+  "theme_color": "#42b983",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxODAgMTgwJz48cmVjdCB3aWR0aD0nMTgwJyBoZWlnaHQ9JzE4MCcgcng9JzM4JyBmaWxsPScjNDJiOTgzJy8+PHJlY3QgeD0nNDInIHk9JzYwJyB3aWR0aD0nOTYnIGhlaWdodD0nNzgnIHJ4PScxMCcgZmlsbD0nbm9uZScgc3Ryb2tlPScjZmZmJyBzdHJva2Utd2lkdGg9JzgnLz48cGF0aCBkPSdNNzIgNjAgVjQ2IGE2IDYgMCAwIDEgNi02IGgyNCBhNiA2IDAgMCAxIDYgNiB2MTQnIGZpbGw9J25vbmUnIHN0cm9rZT0nI2ZmZicgc3Ryb2tlLXdpZHRoPSc4Jy8+PHBhdGggZD0nTTY2IDk4IGwxNiAxNyBsMzIgLTM0JyBmaWxsPSdub25lJyBzdHJva2U9JyNmZmYnIHN0cm9rZS13aWR0aD0nMTEnIHN0cm9rZS1saW5lY2FwPSdyb3VuZCcgc3Ryb2tlLWxpbmVqb2luPSdyb3VuZCcvPjwvc3ZnPg==",
+      "sizes": "180x180",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Travel Checklist</title>
+
+  <!-- PWA: makes the page installable and gives the OS its colours/icon.
+       iOS ignores the manifest's icon, hence the separate apple-touch-icon. -->
+  <meta name="theme-color" content="#42b983">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Packing">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxODAgMTgwJz48cmVjdCB3aWR0aD0nMTgwJyBoZWlnaHQ9JzE4MCcgcng9JzM4JyBmaWxsPScjNDJiOTgzJy8+PHJlY3QgeD0nNDInIHk9JzYwJyB3aWR0aD0nOTYnIGhlaWdodD0nNzgnIHJ4PScxMCcgZmlsbD0nbm9uZScgc3Ryb2tlPScjZmZmJyBzdHJva2Utd2lkdGg9JzgnLz48cGF0aCBkPSdNNzIgNjAgVjQ2IGE2IDYgMCAwIDEgNi02IGgyNCBhNiA2IDAgMCAxIDYgNiB2MTQnIGZpbGw9J25vbmUnIHN0cm9rZT0nI2ZmZicgc3Ryb2tlLXdpZHRoPSc4Jy8+PHBhdGggZD0nTTY2IDk4IGwxNiAxNyBsMzIgLTM0JyBmaWxsPSdub25lJyBzdHJva2U9JyNmZmYnIHN0cm9rZS13aWR0aD0nMTEnIHN0cm9rZS1saW5lY2FwPSdyb3VuZCcgc3Ryb2tlLWxpbmVqb2luPSdyb3VuZCcvPjwvc3ZnPg==">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 1em;
+      background: #fafafa;
+      color: #333;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      background: #fafafa;
+      z-index: 100;
+      padding-bottom: 0.5em;
+      border-bottom: 1px solid #e0e0e0;
+      margin-bottom: 1em;
+    }
+
+    h1 {
+      font-size: 1.4em;
+      margin-bottom: 0.4em;
+    }
+
+    /* --- Controls row --- */
+    .controls {
+      display: flex;
+      gap: 0.6em;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 0.5em;
+    }
+    .controls select {
+      padding: 0.3em 0.5em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 0.9em;
+      background: white;
+    }
+    .controls button {
+      padding: 0.3em 0.8em;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85em;
+    }
+    .btn-reset-all { background: #e74c3c; color: white; }
+    .btn-reset-all:hover { background: #c0392b; }
+
+    /* --- Master progress --- */
+    .progress-container {
+      background: #e0e0e0;
+      border-radius: 8px;
+      height: 22px;
+      position: relative;
+      overflow: hidden;
+    }
+    .progress-bar {
+      background: #42b983;
+      height: 100%;
+      border-radius: 8px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+    .progress-text {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      text-align: center;
+      line-height: 22px;
+      font-size: 0.8em;
+      font-weight: bold;
+      color: #333;
+    }
+
+    /* --- Category sections --- */
+    details {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      margin-bottom: 0.6em;
+      overflow: hidden;
+    }
+    summary {
+      padding: 0.7em 1em;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 1.05em;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+      list-style: none;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::before {
+      content: "\25B6";
+      font-size: 0.7em;
+      margin-right: 0.6em;
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+    details[open] > summary::before { transform: rotate(90deg); }
+
+    .cat-progress-mini {
+      font-size: 0.75em;
+      font-weight: normal;
+      color: #888;
+      margin-left: auto;
+      padding-left: 1em;
+      white-space: nowrap;
+    }
+
+    .cat-body { padding: 0 1em 0.8em 1em; }
+    .cat-progress { margin-bottom: 0.6em; }
+    .cat-progress .progress-container { height: 18px; }
+    .cat-progress .progress-text { line-height: 18px; font-size: 0.75em; }
+
+    /* --- Item list --- */
+    ul { list-style: none; padding: 0; }
+    li {
+      display: flex;
+      align-items: center;
+      padding: 0.35em 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 1em;
+    }
+    li:last-child { border-bottom: none; }
+
+    li input[type="checkbox"] {
+      width: 1.15em;
+      height: 1.15em;
+      margin-right: 0.5em;
+      cursor: pointer;
+      accent-color: #42b983;
+      flex-shrink: 0;
+    }
+    li .item-label { flex: 1; }
+
+    li.checked .item-label {
+      text-decoration: line-through;
+      opacity: 0.5;
+    }
+    li.skipped {
+      text-decoration: line-through;
+      opacity: 0.3;
+      font-style: italic;
+    }
+    li.skipped input[type="checkbox"] { display: none; }
+    li.skipped .skip-btn { border-color: #e74c3c; color: #e74c3c; }
+
+    .skip-btn {
+      background: none;
+      border: 1px solid #aaa;
+      color: #888;
+      cursor: pointer;
+      font-size: 0.6em;
+      padding: 0.15em 0.4em;
+      border-radius: 3px;
+      margin-left: 0.4em;
+      flex-shrink: 0;
+    }
+    .skip-btn:hover { background: #eee; }
+
+    /* --- Category buttons --- */
+    .cat-buttons {
+      display: flex;
+      gap: 0.5em;
+      margin-top: 0.6em;
+      flex-wrap: wrap;
+    }
+    .cat-buttons button {
+      padding: 0.35em 0.8em;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8em;
+    }
+    .btn-reset { background: #e74c3c; color: white; }
+    .btn-reset:hover { background: #c0392b; }
+    .btn-edit { background: #3498db; color: white; }
+    .btn-edit:hover { background: #2980b9; }
+
+    /* --- Edit panel --- */
+    .edit-panel {
+      display: none;
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 0.8em;
+      margin-top: 0.5em;
+    }
+    .edit-panel.visible { display: block; }
+    .edit-panel h4 { margin-bottom: 0.4em; font-size: 0.9em; }
+    .edit-row {
+      display: flex;
+      gap: 0.4em;
+      margin-bottom: 0.4em;
+    }
+    .edit-row input[type="text"] {
+      flex: 1;
+      padding: 0.35em 0.5em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+    .edit-add-btn { background: #42b983; color: white; }
+    .edit-add-btn:hover { background: #38a373; }
+    .edit-status {
+      font-size: 0.8em;
+      color: #42b983;
+      min-height: 1.2em;
+      margin-top: 0.2em;
+    }
+    .edit-item-list {
+      max-height: 250px;
+      overflow-y: auto;
+      margin-top: 0.4em;
+    }
+    .edit-item-list li {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.25em 0.4em;
+      font-size: 0.85em;
+    }
+    .edit-item-actions { display: flex; gap: 0.3em; flex-shrink: 0; }
+    .edit-remove-btn {
+      background: none;
+      border: none;
+      color: #e74c3c;
+      cursor: pointer;
+      font-size: 1.1em;
+      font-weight: bold;
+      padding: 0 0.3em;
+    }
+    .edit-move-btn {
+      background: none;
+      border: 1px solid #3498db;
+      color: #3498db;
+      cursor: pointer;
+      font-size: 0.7em;
+      padding: 0.1em 0.4em;
+      border-radius: 3px;
+    }
+    .edit-move-btn:hover { background: #3498db; color: white; }
+    .move-dropdown {
+      position: absolute;
+      right: 0;
+      top: 100%;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 200;
+      min-width: 180px;
+      max-height: 250px;
+      overflow-y: auto;
+      padding: 0.3em 0;
+    }
+    .move-dropdown div {
+      padding: 0.35em 0.8em;
+      cursor: pointer;
+      font-size: 0.85em;
+    }
+    .move-dropdown div:hover { background: #f0f0f0; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Travel Checklist</h1>
+  <div class="controls">
+    <select id="profile-select">
+      <option value="">All Categories</option>
+    </select>
+    <button class="btn-reset-all" id="reset-all-btn">Reset All</button>
+  </div>
+  <div class="progress-container">
+    <div class="progress-bar" id="master-bar"></div>
+    <div class="progress-text" id="master-text">0 / 0</div>
+  </div>
+</header>
+
+<main id="app"></main>
+
+<script>
+(function() {
+  "use strict";
+
+  var DATA = {
+  "categories": {
+    "essentials": {
+      "label": "Essentials",
+      "items": [
+        "wallet",
+        "chonker",
+        "cash",
+        "water bottles",
+        "laundry bag",
+        "napkins",
+        "mac",
+        "mac charger",
+        "phone",
+        "phone cable",
+        "usb charger",
+        "usb cables",
+        "headphones",
+        "kindle scribe",
+        "boox",
+        "boox keyboard",
+        "paper / pencil",
+        "small backpack",
+        "pack L",
+        "pack K",
+        "headlamp"
+      ]
+    },
+    "international": {
+      "label": "International",
+      "items": [
+        "passport",
+        "currency",
+        "wipe phone",
+        "wipe computer",
+        "mosquito repellant",
+        "european plug adapter?"
+      ]
+    },
+    "clothing": {
+      "label": "Clothing",
+      "items": [
+        "tshirts",
+        "shirts",
+        "shorts",
+        "running shorts",
+        "pants",
+        "underwear",
+        "socks",
+        "thermals",
+        "pajamas",
+        "swimming trunks",
+        "rain jacket",
+        "warm jacket",
+        "hat",
+        "warm hat",
+        "flip flops",
+        "hiking shoes",
+        "running shoes",
+        "warm socks"
+      ]
+    },
+    "toiletries_and_personal_care": {
+      "label": "Toiletries & Personal Care",
+      "items": [
+        "toiletries bag",
+        "sunscreen",
+        "soap",
+        "mouth guard",
+        "baby wipes",
+        "toothbrush",
+        "deodorant",
+        "sanitizer",
+        "ibuprofen",
+        "flask"
+      ]
+    },
+    "electronics_and_tech": {
+      "label": "Electronics & Tech",
+      "items": [
+        "cable and batteries bag",
+        "scope",
+        "saleae"
+      ]
+    },
+    "camping": {
+      "label": "Camping",
+      "items": [
+        "bread",
+        "gas cylinder",
+        "frying pan",
+        "cooking pot",
+        "tent",
+        "tent poles + sheet",
+        "sleeping bags",
+        "sleeping pads",
+        "tarp",
+        "pillows",
+        "towels",
+        "hammer",
+        "work gloves",
+        "shower bag",
+        "twine / rope",
+        "pee jug",
+        "vodka spray",
+        "lantern",
+        "small folding table",
+        "camping stove",
+        "dust pan"
+      ]
+    },
+    "bike_gear": {
+      "label": "Bike Gear",
+      "items": [
+        "bike lights",
+        "bike helmet",
+        "bike oil",
+        "straps for bike baskets",
+        "check bike (pre-trip)"
+      ]
+    },
+    "plane": {
+      "label": "Air travel",
+      "items": [
+        "passport",
+        "check for hazardous materials",
+        "move toiletries to Monkey's checked luggage"
+      ]
+    },
+    "snorkel": {
+      "label": "Snorkelling gear",
+      "items": [
+        "fins",
+        "water boots",
+        "mask and snorkel"
+      ]
+    },
+    "burning_man_specific": {
+      "label": "Burning Man Specific",
+      "items": [
+        "masks",
+        "ski goggles",
+        "small backpack",
+        "distilled water",
+        "measuring tape",
+        "tools bin <- needs to be expanded",
+        "hammer"
+      ]
+    },
+    "for_minky": {
+      "label": "For Minky",
+      "items": [
+        "hat",
+        "contact lens solution",
+        "sunscreen"
+      ]
+    },
+    "mountain_winters": {
+      "label": "Winters in the mountains",
+      "items": [
+        "snow shoes",
+        "skis",
+        "ski poles",
+        "ski shoes",
+        "ski goggles",
+        "warm gloves",
+        "work gloves",
+        "small shovel",
+        "snow chains",
+        "spare snow chains"
+      ]
+    },
+    "road_trip": {
+      "label": "Road Trip",
+      "items": [
+        "blankets",
+        "duct tape",
+        "carabiners",
+        "first aid kit",
+        "trash bags",
+        "chairs",
+        "trekking poles",
+        "binoculars",
+        "crampons",
+        "duplicate car key",
+        "air pump",
+        "recycling bag",
+        "inverter",
+        "toll device",
+        "national park pass",
+        "extension cord",
+        "beer",
+        "alcohol",
+        "frozen veggies",
+        "olive oil",
+        "spices",
+        "mustard",
+        "coffee",
+        "half and half",
+        "dry coffee creamer",
+        "cheese",
+        "noodles",
+        "hot sauce",
+        "soup cans",
+        "tortilla chips + salsa",
+        "tuna",
+        "indian food pouches",
+        "quinoa",
+        "rice",
+        "dal",
+        "microwavable plates",
+        "microwavable cups",
+        "beer koozies",
+        "cooler",
+        "french press",
+        "tupperware",
+        "aluminium foil",
+        "fire ring",
+        "water jug",
+        "umbrella",
+        "bear spray",
+        "bear bell",
+        "evaporated milk"
+      ]
+    },
+    "misc": {
+      "label": "Miscellaneous and for later",
+      "items": [
+        "move car",
+        "pack alcohol",
+        "water plants"
+      ]
+    }
+  },
+  "trip_profiles": {
+    "camping_road_trip": [
+      "essentials",
+      "road_trip",
+      "clothing",
+      "toiletries_and_personal_care",
+      "electronics_and_tech",
+      "camping",
+      "mountain_winters",
+      "vehicle",
+      "misc"
+    ],
+    "beach_camping_trip_by_myself": [
+      "essentials",
+      "road_trip",
+      "clothing",
+      "toiletries_and_personal_care",
+      "electronics_and_tech",
+      "camping",
+      "vehicle",
+      "misc"
+    ],
+    "road_trip_in_spring": [
+      "essentials",
+      "road_trip",
+      "clothing",
+      "toiletries_and_personal_care",
+      "electronics_and_tech",
+      "vehicle",
+      "misc"
+    ],
+    "burning_man": [
+      "essentials",
+      "dust sheet for the interior of the UHaul",
+      "clothing",
+      "toiletries_and_personal_care",
+      "electronics_and_tech",
+      "camping",
+      "bike_gear",
+      "vehicle",
+      "burning_man_specific",
+      "license plates for the trailer??",
+      "misc"
+    ],
+    "international_flight": [
+      "essentials",
+      "international",
+      "clothing",
+      "toiletries_and_personal_care",
+      "electronics_and_tech",
+      "for_minky",
+      "misc"
+    ],
+    "international_snorkel": [
+      "essentials",
+      "international",
+      "snorkel",
+      "clothing",
+      "toiletries_and_personal_care",
+      "electronics_and_tech",
+      "for_minky",
+      "misc"
+    ],
+    "day_trip": [
+      "essentials",
+      "electronics_and_tech",
+      "clothing",
+      "toiletries_and_personal_care",
+      "vehicle",
+      "road_trip"
+    ]
+  }
+};
+
+  var cats = DATA.categories;
+  var profiles = DATA.trip_profiles || {};
+  var app = document.getElementById("app");
+  var profileSelect = document.getElementById("profile-select");
+
+  // -----------------------------------------------------------------------
+  // localStorage helpers — keyed by item name, not index
+  // -----------------------------------------------------------------------
+  function storageKey(catKey) { return "tc_" + catKey; }
+
+  function loadState(catKey) {
+    try { return JSON.parse(localStorage.getItem(storageKey(catKey)) || "{}"); }
+    catch(e) { return {}; }
+  }
+
+  function saveState(catKey, state) {
+    localStorage.setItem(storageKey(catKey), JSON.stringify(state));
+  }
+
+  // Migrate from old Docsify index-based keys (one-time)
+  function migrateOldStorage() {
+    if (localStorage.getItem("tc_migrated")) return;
+    Object.keys(cats).forEach(function(catKey) {
+      var oldKey = "travel_checks_/" + catKey;
+      var raw = localStorage.getItem(oldKey);
+      if (!raw) return;
+      try {
+        var old = JSON.parse(raw);
+        var items = cats[catKey].items;
+        var migrated = {};
+        Object.keys(old).forEach(function(idx) {
+          var i = parseInt(idx, 10);
+          if (items[i]) migrated[items[i]] = old[idx];
+        });
+        saveState(catKey, migrated);
+        localStorage.removeItem(oldKey);
+      } catch(e) { /* skip broken entries */ }
+    });
+    localStorage.setItem("tc_migrated", "1");
+  }
+
+  // -----------------------------------------------------------------------
+  // Rendering
+  // -----------------------------------------------------------------------
+  function renderApp() {
+    app.innerHTML = "";
+    Object.keys(cats).forEach(function(catKey) {
+      app.appendChild(renderCategory(catKey, cats[catKey]));
+    });
+    applyProfileFilter();
+    updateMasterProgress();
+  }
+
+  function renderCategory(catKey, catData) {
+    var details = document.createElement("details");
+    details.dataset.cat = catKey;
+    details.open = false;
+
+    // Summary with mini progress
+    var summary = document.createElement("summary");
+    var titleSpan = document.createElement("span");
+    titleSpan.textContent = catData.label;
+    var miniSpan = document.createElement("span");
+    miniSpan.className = "cat-progress-mini";
+    miniSpan.id = "mini-" + catKey;
+    summary.appendChild(titleSpan);
+    summary.appendChild(miniSpan);
+    details.appendChild(summary);
+
+    // Body
+    var body = document.createElement("div");
+    body.className = "cat-body";
+
+    // Per-category progress bar
+    var progWrap = document.createElement("div");
+    progWrap.className = "cat-progress";
+    progWrap.innerHTML =
+      '<div class="progress-container">' +
+      '  <div class="progress-bar" id="bar-' + catKey + '"></div>' +
+      '  <div class="progress-text" id="text-' + catKey + '"></div>' +
+      '</div>';
+    body.appendChild(progWrap);
+
+    // Item list
+    var ul = document.createElement("ul");
+    var state = loadState(catKey);
+
+    catData.items.forEach(function(itemName) {
+      var li = document.createElement("li");
+      li.dataset.item = itemName;
+
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+
+      var label = document.createElement("span");
+      label.className = "item-label";
+      label.textContent = itemName;
+
+      var skipBtn = document.createElement("button");
+      skipBtn.className = "skip-btn";
+
+      // Restore state
+      if (state[itemName] === "skip") {
+        li.classList.add("skipped");
+        skipBtn.textContent = "undo";
+        skipBtn.title = "Bring this item back";
+      } else if (state[itemName]) {
+        cb.checked = true;
+        li.classList.add("checked");
+        skipBtn.textContent = "n/a";
+        skipBtn.title = "Not taking this item";
+      } else {
+        skipBtn.textContent = "n/a";
+        skipBtn.title = "Not taking this item";
+      }
+
+      // Checkbox handler
+      cb.addEventListener("change", function() {
+        var s = loadState(catKey);
+        s[itemName] = this.checked;
+        if (!this.checked) delete s[itemName];
+        saveState(catKey, s);
+        li.classList.toggle("checked", this.checked);
+        updateCategoryProgress(catKey);
+        updateMasterProgress();
+      });
+
+      // Skip handler
+      skipBtn.addEventListener("click", function() {
+        var s = loadState(catKey);
+        if (s[itemName] === "skip") {
+          delete s[itemName];
+          li.classList.remove("skipped", "checked");
+          cb.checked = false;
+          skipBtn.textContent = "n/a";
+          skipBtn.title = "Not taking this item";
+        } else {
+          s[itemName] = "skip";
+          li.classList.add("skipped");
+          li.classList.remove("checked");
+          cb.checked = false;
+          skipBtn.textContent = "undo";
+          skipBtn.title = "Bring this item back";
+        }
+        saveState(catKey, s);
+        updateCategoryProgress(catKey);
+        updateMasterProgress();
+      });
+
+      li.appendChild(cb);
+      li.appendChild(label);
+      li.appendChild(skipBtn);
+      ul.appendChild(li);
+    });
+
+    body.appendChild(ul);
+
+    // Buttons row
+    var btns = document.createElement("div");
+    btns.className = "cat-buttons";
+
+    var resetBtn = document.createElement("button");
+    resetBtn.className = "btn-reset";
+    resetBtn.textContent = "Reset";
+    resetBtn.addEventListener("click", function() {
+      localStorage.removeItem(storageKey(catKey));
+      ul.querySelectorAll("li").forEach(function(li) {
+        li.classList.remove("checked", "skipped");
+        var cb = li.querySelector("input[type=checkbox]");
+        if (cb) cb.checked = false;
+        var sb = li.querySelector(".skip-btn");
+        if (sb) { sb.textContent = "n/a"; sb.title = "Not taking this item"; }
+      });
+      updateCategoryProgress(catKey);
+      updateMasterProgress();
+    });
+    btns.appendChild(resetBtn);
+
+    var editBtn = document.createElement("button");
+    editBtn.className = "btn-edit";
+    editBtn.textContent = "Edit Items";
+    editBtn.addEventListener("click", function() {
+      var panel = details.querySelector(".edit-panel");
+      if (panel) {
+        panel.classList.toggle("visible");
+        if (panel.classList.contains("visible")) loadEditItems(catKey, panel);
+      }
+    });
+    btns.appendChild(editBtn);
+
+    body.appendChild(btns);
+
+    // Edit panel (hidden by default)
+    var editPanel = document.createElement("div");
+    editPanel.className = "edit-panel";
+    editPanel.innerHTML =
+      '<h4>Edit: ' + catData.label + '</h4>' +
+      '<div class="edit-row">' +
+      '  <input type="text" placeholder="New item name..." class="edit-input">' +
+      '  <button class="edit-add-btn">Add</button>' +
+      '</div>' +
+      '<div class="edit-status"></div>' +
+      '<ul class="edit-item-list"></ul>';
+
+    var editInput = editPanel.querySelector(".edit-input");
+    var editAddBtn = editPanel.querySelector(".edit-add-btn");
+
+    editAddBtn.addEventListener("click", function() {
+      var item = editInput.value.trim();
+      if (!item) return;
+      apiCall("/api/add-item", {category: catKey, item: item}, function(data) {
+        editInput.value = "";
+        showEditStatus(editPanel, "Added: " + item);
+        cats[catKey].items = data.items;
+        renderApp();
+      });
+    });
+
+    editInput.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") editAddBtn.click();
+    });
+
+    body.appendChild(editPanel);
+    details.appendChild(body);
+
+    // Set initial progress
+    setTimeout(function() { updateCategoryProgress(catKey); }, 0);
+
+    return details;
+  }
+
+  // -----------------------------------------------------------------------
+  // Edit panel helpers
+  // -----------------------------------------------------------------------
+  function loadEditItems(catKey, panel) {
+    var list = panel.querySelector(".edit-item-list");
+    apiGet("/api/get-categories", function(allCats) {
+      var items = allCats[catKey] ? allCats[catKey].items : [];
+      list.innerHTML = "";
+      items.forEach(function(item) {
+        var li = document.createElement("li");
+        li.style.position = "relative";
+
+        var span = document.createElement("span");
+        span.textContent = item;
+
+        var actions = document.createElement("div");
+        actions.className = "edit-item-actions";
+
+        // Move button
+        var moveBtn = document.createElement("button");
+        moveBtn.className = "edit-move-btn";
+        moveBtn.textContent = "move";
+        moveBtn.addEventListener("click", function(e) {
+          e.stopPropagation();
+          document.querySelectorAll(".move-dropdown").forEach(function(d) { d.remove(); });
+          var dd = document.createElement("div");
+          dd.className = "move-dropdown";
+          Object.keys(allCats).forEach(function(k) {
+            if (k === catKey) return;
+            var opt = document.createElement("div");
+            opt.textContent = allCats[k].label;
+            opt.addEventListener("click", function() {
+              apiCall("/api/move-item", {category: catKey, item: item, target: k}, function(data) {
+                showEditStatus(panel, 'Moved "' + item + '" to ' + data.target_label);
+                // Update local data
+                cats[catKey].items = cats[catKey].items.filter(function(i) { return i !== item; });
+                if (cats[k]) {
+                  if (cats[k].items.indexOf(item) === -1) cats[k].items.push(item);
+                }
+                renderApp();
+              });
+            });
+            dd.appendChild(opt);
+          });
+          li.appendChild(dd);
+          setTimeout(function() {
+            document.addEventListener("click", function closer() {
+              dd.remove();
+              document.removeEventListener("click", closer);
+            });
+          }, 0);
+        });
+
+        // Remove button
+        var removeBtn = document.createElement("button");
+        removeBtn.className = "edit-remove-btn";
+        removeBtn.innerHTML = "&times;";
+        removeBtn.addEventListener("click", function() {
+          apiCall("/api/remove-item", {category: catKey, item: item}, function(data) {
+            showEditStatus(panel, "Removed: " + item);
+            cats[catKey].items = data.items;
+            renderApp();
+          });
+        });
+
+        actions.appendChild(moveBtn);
+        actions.appendChild(removeBtn);
+        li.appendChild(span);
+        li.appendChild(actions);
+        list.appendChild(li);
+      });
+    });
+  }
+
+  function showEditStatus(panel, msg) {
+    var el = panel.querySelector(".edit-status");
+    if (el) { el.textContent = msg; setTimeout(function() { el.textContent = ""; }, 3000); }
+  }
+
+  function apiCall(url, body, cb) {
+    fetch(url, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(body)
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      if (data.error) { alert("Error: " + data.error); return; }
+      if (cb) cb(data);
+    }).catch(function() {
+      alert("Server not running. Use: python3 serve.py");
+    });
+  }
+
+  function apiGet(url, cb) {
+    fetch(url).then(function(r) { return r.json(); }).then(cb).catch(function() {
+      alert("Server not running. Use: python3 serve.py");
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // Progress
+  // -----------------------------------------------------------------------
+  function updateCategoryProgress(catKey) {
+    var state = loadState(catKey);
+    var items = cats[catKey].items;
+    var checked = 0, skipped = 0;
+    items.forEach(function(name) {
+      if (state[name] === "skip") skipped++;
+      else if (state[name]) checked++;
+    });
+    var total = items.length - skipped;
+    var pct = total > 0 ? Math.round((checked / total) * 100) : 0;
+
+    var bar = document.getElementById("bar-" + catKey);
+    var text = document.getElementById("text-" + catKey);
+    var mini = document.getElementById("mini-" + catKey);
+
+    var label = checked + " / " + total;
+    if (skipped > 0) label += " (" + skipped + " skipped)";
+
+    if (bar) bar.style.width = pct + "%";
+    if (text) text.textContent = label + " — " + pct + "%";
+    if (mini) mini.textContent = checked + "/" + total;
+  }
+
+  function updateMasterProgress() {
+    var totalChecked = 0, totalItems = 0, totalSkipped = 0;
+    // Only count visible (non-hidden) categories
+    Object.keys(cats).forEach(function(catKey) {
+      var el = document.querySelector('[data-cat="' + catKey + '"]');
+      if (el && el.style.display === "none") return;
+      var state = loadState(catKey);
+      var items = cats[catKey].items;
+      items.forEach(function(name) {
+        if (state[name] === "skip") totalSkipped++;
+        else if (state[name]) totalChecked++;
+      });
+      totalItems += items.length;
+    });
+    var effective = totalItems - totalSkipped;
+    var pct = effective > 0 ? Math.round((totalChecked / effective) * 100) : 0;
+    var label = totalChecked + " / " + effective + " (" + pct + "%)";
+    if (totalSkipped > 0) label += " [" + totalSkipped + " skipped]";
+
+    var bar = document.getElementById("master-bar");
+    var text = document.getElementById("master-text");
+    if (bar) bar.style.width = pct + "%";
+    if (text) text.textContent = label;
+  }
+
+  // -----------------------------------------------------------------------
+  // Trip profiles
+  // -----------------------------------------------------------------------
+  function initProfiles() {
+    Object.keys(profiles).forEach(function(key) {
+      var opt = document.createElement("option");
+      opt.value = key;
+      opt.textContent = key.replace(/_/g, " ");
+      profileSelect.appendChild(opt);
+    });
+
+    // Restore saved profile selection
+    var saved = localStorage.getItem("tc_profile") || "";
+    profileSelect.value = saved;
+
+    profileSelect.addEventListener("change", function() {
+      localStorage.setItem("tc_profile", this.value);
+      applyProfileFilter();
+      updateMasterProgress();
+    });
+  }
+
+  function applyProfileFilter() {
+    var selected = profileSelect.value;
+    var visibleKeys = null;
+    if (selected && profiles[selected]) {
+      visibleKeys = profiles[selected];
+    }
+
+    document.querySelectorAll("details[data-cat]").forEach(function(el) {
+      var catKey = el.dataset.cat;
+      if (visibleKeys === null || visibleKeys.indexOf(catKey) !== -1) {
+        el.style.display = "";
+      } else {
+        el.style.display = "none";
+      }
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // Reset All
+  // -----------------------------------------------------------------------
+  document.getElementById("reset-all-btn").addEventListener("click", function() {
+    if (!confirm("Reset ALL checkboxes across all categories?")) return;
+    Object.keys(cats).forEach(function(catKey) {
+      localStorage.removeItem(storageKey(catKey));
+    });
+    renderApp();
+  });
+
+  // -----------------------------------------------------------------------
+  // Boot
+  // -----------------------------------------------------------------------
+  migrateOldStorage();
+  initProfiles();
+  renderApp();
+
+  // -----------------------------------------------------------------------
+  // Service worker
+  //
+  // Registration only works over https or localhost, and never over file://.
+  // Opening index.html directly still works fine — it just isn't installable
+  // and there's nothing to cache, so we fail silently rather than warn.
+  // -----------------------------------------------------------------------
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    window.addEventListener("load", function() {
+      navigator.serviceWorker.register("./sw.js").catch(function(err) {
+        console.log("Service worker registration failed:", err);
+      });
+    });
+  }
+
+})();
+</script>
+</body>
+</html>
