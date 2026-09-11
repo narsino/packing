@@ -282,6 +282,66 @@
     }
     .move-dropdown div:hover { background: #f0f0f0; }
 
+    /* Add-on modifiers. A second axis, independent of the trip profile: the
+       profile says what kind of trip it is, a chip says something about the
+       circumstances that cuts across every trip type.
+       Kept visually lighter than the profile select so it reads as a modifier
+       of that choice rather than a competing control. */
+    .modifier-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4em;
+      margin: 0.5em 0 0.6em;
+    }
+    .modifier-chips:empty { display: none; }   /* no modifiers, no row */
+    .chip {
+      font: inherit;
+      font-size: 0.8em;
+      line-height: 1;
+      padding: 0.65em 0.9em;     /* ~44px tall: a thumb target, not a mouse one */
+      border: 1px solid #ccc;
+      border-radius: 999px;
+      background: #fff;
+      color: #666;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .chip:hover:not(:disabled) { border-color: #999; }
+    .chip[aria-pressed="true"] {
+      background: #4a90d9;
+      border-color: #4a90d9;
+      color: #fff;
+    }
+    .chip:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    /* Commented-out entries: still on the page so you can see what you
+       switched off in categories.json, but inert -- no checkbox, no n/a
+       button, and not counted in any progress bar. Publish builds never
+       contain these at all. */
+    details.disabled-cat > summary { color: #aaa; font-style: italic; }
+    details.disabled-cat { opacity: 0.6; }
+    .disabled-tag {
+      font-size: 0.65em;
+      font-weight: 600;
+      font-style: normal;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #999;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      padding: 0.1em 0.4em;
+      margin-left: 0.6em;
+    }
+    li.disabled-item {
+      color: #aaa;
+      font-style: italic;
+    }
+    li.disabled-item .item-label { text-decoration: none; }
+
     /* Which build am I actually looking at? Without this the only way to tell
        a stale home-screen app from a fresh one is to hunt for a known item. */
     .build-stamp {
@@ -305,6 +365,7 @@
     </select>
     <button class="btn-reset-all" id="reset-all-btn">Reset All</button>
   </div>
+  <div id="modifier-chips" class="modifier-chips"></div>
   <div class="progress-container">
     <div class="progress-bar" id="master-bar"></div>
     <div class="progress-text" id="master-text">0 / 0</div>
@@ -314,7 +375,7 @@
 <main id="app"></main>
 
 <footer class="build-stamp">
-  build 5b44dd678a
+  build bceb9560f1
 </footer>
 
 <script>
@@ -347,7 +408,8 @@
         "headlamp",
         "coffee",
         "half and half",
-        "dry coffee creamer"
+        "dry coffee creamer",
+        "mini jambox"
       ]
     },
     "international": {
@@ -397,7 +459,10 @@
         "deodorant",
         "sanitizer",
         "ibuprofen",
-        "flask"
+        "flask",
+        "floss",
+        "tongue scraper",
+        "hair spray"
       ]
     },
     "electronics_and_tech": {
@@ -550,13 +615,10 @@
     "misc": {
       "label": "Miscellaneous and for later",
       "items": [
-        "solar panels",
-        "small tools",
-        "granola",
-        "hard boiled eggs from Costco",
-        "clorox",
-        "light sticks!",
-        "fat tire for bike"
+        "inertial guidance",
+        "sleep monitor",
+        "breathing monitor radar",
+        "falling monitor radar"
       ]
     }
   },
@@ -569,7 +631,6 @@
       "electronics_and_tech",
       "camping",
       "mountain_winters",
-      "vehicle",
       "misc"
     ],
     "beach_camping_trip_by_myself": [
@@ -579,7 +640,6 @@
       "toiletries_and_personal_care",
       "electronics_and_tech",
       "camping",
-      "vehicle",
       "misc"
     ],
     "road_trip_in_spring": [
@@ -588,20 +648,16 @@
       "clothing",
       "toiletries_and_personal_care",
       "electronics_and_tech",
-      "vehicle",
       "misc"
     ],
     "burning_man": [
       "essentials",
-      "dust sheet for the interior of the UHaul",
       "clothing",
       "toiletries_and_personal_care",
       "electronics_and_tech",
       "camping",
       "bike_gear",
-      "vehicle",
       "burning_man_specific",
-      "license plates for the trailer??",
       "misc"
     ],
     "international_flight": [
@@ -628,16 +684,25 @@
       "electronics_and_tech",
       "clothing",
       "toiletries_and_personal_care",
-      "vehicle",
       "road_trip"
+    ],
+    "domestic_plane_trip": [
+      "essentials",
+      "electronics_and_tech",
+      "clothing",
+      "toiletries_and_personal_care",
+      "misc"
     ]
-  }
+  },
+  "trip_modifiers": {}
 };
 
   var cats = DATA.categories;
   var profiles = DATA.trip_profiles || {};
   var app = document.getElementById("app");
   var profileSelect = document.getElementById("profile-select");
+  var modifiers = DATA.trip_modifiers || {};
+  var chipRow = document.getElementById("modifier-chips");
 
   // -----------------------------------------------------------------------
   // localStorage helpers — keyed by item name, not index
@@ -678,6 +743,15 @@
   // -----------------------------------------------------------------------
   // Rendering
   // -----------------------------------------------------------------------
+  /* A leading underscore is this project's "commented out" marker -- JSON has
+     no comment syntax, so that is the convention (see strip_disabled() in
+     generate_site.py). Publish builds strip these entries out; the local build
+     keeps them and greys them out here. */
+  function isDisabled(name) { return name.charAt(0) === "_"; }
+  function liveItems(catKey) {
+    return cats[catKey].items.filter(function(n) { return !isDisabled(n); });
+  }
+
   function renderApp() {
     app.innerHTML = "";
     Object.keys(cats).forEach(function(catKey) {
@@ -693,9 +767,19 @@
     details.open = false;
 
     // Summary with mini progress
+    var catOff = isDisabled(catKey);
+    if (catOff) details.classList.add("disabled-cat");
+
     var summary = document.createElement("summary");
     var titleSpan = document.createElement("span");
     titleSpan.textContent = catData.label;
+    if (catOff) {
+      var tag = document.createElement("span");
+      tag.className = "disabled-tag";
+      tag.textContent = "off";
+      tag.title = "Commented out in categories.json -- remove the leading _ to bring it back";
+      titleSpan.appendChild(tag);
+    }
     var miniSpan = document.createElement("span");
     miniSpan.className = "cat-progress-mini";
     miniSpan.id = "mini-" + catKey;
@@ -724,6 +808,27 @@
     catData.items.forEach(function(itemName) {
       var li = document.createElement("li");
       li.dataset.item = itemName;
+
+      // Disabled items get a label and nothing else: no checkbox to tick, no
+      // n/a button, no state. Giving them controls would invite you to tick
+      // something that the next rebuild is going to ignore anyway.
+      if (catOff || isDisabled(itemName)) {
+        li.classList.add("disabled-item");
+        var dl = document.createElement("span");
+        dl.className = "item-label";
+        dl.textContent = isDisabled(itemName) ? itemName.slice(1) : itemName;
+        li.appendChild(dl);
+        // Only tag the item when the item itself is off. In a switched-off
+        // category the header already says so, and 22 more OFF badges is noise.
+        if (!catOff) {
+          var dtag = document.createElement("span");
+          dtag.className = "disabled-tag";
+          dtag.textContent = "off";
+          li.appendChild(dtag);
+        }
+        ul.appendChild(li);
+        return;
+      }
 
       var cb = document.createElement("input");
       cb.type = "checkbox";
@@ -894,6 +999,8 @@
           dd.className = "move-dropdown";
           Object.keys(allCats).forEach(function(k) {
             if (k === catKey) return;
+            if (isDisabled(k)) return;   // moving an item into a switched-off category
+
             var opt = document.createElement("div");
             opt.textContent = allCats[k].label;
             opt.addEventListener("click", function() {
@@ -967,8 +1074,19 @@
   // Progress
   // -----------------------------------------------------------------------
   function updateCategoryProgress(catKey) {
+    // A switched-off category has no progress to report -- "0/22" would imply
+    // there are 22 things left to do, which is the opposite of the truth.
+    if (isDisabled(catKey)) {
+      var m = document.getElementById("mini-" + catKey);
+      var t = document.getElementById("text-" + catKey);
+      var b = document.getElementById("bar-" + catKey);
+      if (m) m.textContent = "";
+      if (t) t.textContent = "not in use";
+      if (b) b.style.width = "0%";
+      return;
+    }
     var state = loadState(catKey);
-    var items = cats[catKey].items;
+    var items = liveItems(catKey);
     var checked = 0, skipped = 0;
     items.forEach(function(name) {
       if (state[name] === "skip") skipped++;
@@ -993,10 +1111,11 @@
     var totalChecked = 0, totalItems = 0, totalSkipped = 0;
     // Only count visible (non-hidden) categories
     Object.keys(cats).forEach(function(catKey) {
+      if (isDisabled(catKey)) return;
       var el = document.querySelector('[data-cat="' + catKey + '"]');
       if (el && el.style.display === "none") return;
       var state = loadState(catKey);
-      var items = cats[catKey].items;
+      var items = liveItems(catKey);
       items.forEach(function(name) {
         if (state[name] === "skip") totalSkipped++;
         else if (state[name]) totalChecked++;
@@ -1036,12 +1155,81 @@
     });
   }
 
+  // -----------------------------------------------------------------------
+  // Trip modifiers
+  //
+  // A profile answers "what kind of trip is this". A modifier answers a
+  // question that cuts across every trip type -- "will the house be empty?" --
+  // and layers extra categories on top of whatever profile is selected. Two
+  // independent axes instead of one axis with every combination spelled out.
+  //
+  // Add-only by design: a modifier can reveal categories, never hide them.
+  // -----------------------------------------------------------------------
+  var MODIFIER_KEY = "tc_modifiers";
+
+  function activeModifiers() {
+    var saved = null;
+    try { saved = JSON.parse(localStorage.getItem(MODIFIER_KEY)); } catch (e) {}
+    if (Array.isArray(saved)) {
+      // Drop anything that no longer exists, so renaming a modifier in
+      // categories.json doesn't leave a ghost switched on forever.
+      return saved.filter(function(k) { return modifiers[k]; });
+    }
+    // First run: fall back to whatever the data says is on by default. A
+    // modifier that replaced something previously present in every profile has
+    // to default on -- otherwise the migration quietly turns a list you always
+    // saw into one you have to remember to ask for.
+    return Object.keys(modifiers).filter(function(k) { return modifiers[k]["default"]; });
+  }
+
+  function initModifiers() {
+    var active = activeModifiers();
+
+    Object.keys(modifiers).forEach(function(key) {
+      var chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "chip";
+      chip.dataset.mod = key;
+      chip.textContent = modifiers[key].label || key.replace(/_/g, " ");
+      chip.setAttribute("aria-pressed", active.indexOf(key) !== -1 ? "true" : "false");
+
+      chip.addEventListener("click", function() {
+        var on = this.getAttribute("aria-pressed") === "true";
+        this.setAttribute("aria-pressed", on ? "false" : "true");
+        var now = [];
+        chipRow.querySelectorAll(".chip").forEach(function(c) {
+          if (c.getAttribute("aria-pressed") === "true") now.push(c.dataset.mod);
+        });
+        localStorage.setItem(MODIFIER_KEY, JSON.stringify(now));
+        applyProfileFilter();
+        updateMasterProgress();
+      });
+
+      chipRow.appendChild(chip);
+    });
+  }
+
   function applyProfileFilter() {
     var selected = profileSelect.value;
     var visibleKeys = null;
     if (selected && profiles[selected]) {
-      visibleKeys = profiles[selected];
+      // Union of the trip profile and every switched-on modifier.
+      visibleKeys = profiles[selected].slice();
+      chipRow.querySelectorAll('.chip[aria-pressed="true"]').forEach(function(c) {
+        (modifiers[c.dataset.mod].categories || []).forEach(function(k) {
+          if (visibleKeys.indexOf(k) === -1) visibleKeys.push(k);
+        });
+      });
     }
+
+    // Under "All Categories" everything is showing anyway, so a chip cannot
+    // change what you see. Leaving it live would make it look broken.
+    chipRow.querySelectorAll(".chip").forEach(function(c) {
+      c.disabled = (visibleKeys === null);
+      c.title = visibleKeys === null
+        ? "Pick a trip profile first — all categories are already showing"
+        : "";
+    });
 
     document.querySelectorAll("details[data-cat]").forEach(function(el) {
       var catKey = el.dataset.cat;
@@ -1068,6 +1256,7 @@
   // Boot
   // -----------------------------------------------------------------------
   migrateOldStorage();
+  initModifiers();
   initProfiles();
   renderApp();
 
